@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as ace from 'brace'
 import 'brace/ext/language_tools'
+// import { setCompleters } from 'brace/ext/language_tools'
 import 'brace/theme/github'
 import { Editor } from 'brace'
 import { IEditSession } from 'brace'
@@ -19,21 +20,24 @@ interface State {
 
 
 const staticWordCompleter = {
-    getCompletions: (_editor: Editor,
-                     _session: IEditSession,
-                     _pos: { row: number, column: number },
-                     _prefix: string,
-                     callback: (x: object | null, y: object[]) => void) => {
+    identifierRegexps: [/[a-zA-Z_0-9.]/],
+    getCompletions: function (_editor: Editor,
+                              _session: IEditSession,
+                              _pos: { row: number, column: number },
+                              _prefix: string,
+                              callback: (x: object | null, y: object[]) => void) {
         const token = _session.getTokenAt(_pos.row, _pos.column) as any
 
         if (token.type === 'fieldName' || token.type === 'fieldNameSeparator') {
             const value = _session.getValue().substr(0, _pos.column)
             const startOfExpression = value.lastIndexOf('{{')
             const expressionStr = value.substr(startOfExpression + 2, _pos.column - startOfExpression + 2)
-            callback(null, getFields(expressionStr).map((word) => {
+            const subExpessions = expressionStr.split(/(\+|-|\||\*|\/|\(|\))/)
+            callback(null, getFields(subExpessions[subExpessions.length - 1].trim()).map((item) => {
                 return {
-                    caption: word,
-                    value: word
+                    caption: item.prefix + item.word,
+                    value: item.prefix + item.word,
+                    completer: this
                 }
             }))
         }
@@ -48,18 +52,34 @@ export default class App extends React.Component<Props, State> {
     }
 
     render() {
-        return (
-            <div
-                id="editor"
-                style={{marginTop: '400px', marginLeft: '300px', border: 'solid 1px', width: '300px'}}
-                ref={this._configureEditor}
-            />
+        const counter: number[] = []
 
+        for (let i = 1; i <= 100; i++) {
+            counter.push(i)
+        }
+
+        return (
+            <div>
+                {counter.map(i => this.renderEditor(i))}
+            </div>
         )
     }
 
-    private _configureEditor = () => {
-        const editor: ace.Editor = ace.edit('editor')
+    private renderEditor(id: number) {
+        const editorId = 'editor' + id
+
+        return (
+            <div
+                id={editorId}
+                key={id}
+                style={{marginTop: '20px', marginLeft: '300px', border: 'solid 1px', width: '300px'}}
+                ref={() => this._configureEditor(editorId)}
+            />
+        )
+    }
+
+    private _configureEditor = (editorId: string) => {
+        const editor: ace.Editor = ace.edit(editorId)
         // editor.completer = []
 
         const session = editor.getSession()
@@ -85,6 +105,7 @@ export default class App extends React.Component<Props, State> {
                     editor.clearSelection()
                 },         0)
             }
+
         })
 
         // (editor.commands as any).on('afterExec', function (e: any) {
@@ -92,7 +113,8 @@ export default class App extends React.Component<Props, State> {
         //         editor.execCommand('startAutocomplete')
         //     }
         // })
-
+        const lang = ace.acequire('ace/ext/language_tools')
+        lang.setCompleters([staticWordCompleter])
 
         editor.setOptions({
             width: 'initial',
@@ -101,7 +123,7 @@ export default class App extends React.Component<Props, State> {
             highlightActiveLine: true,
             wrapBehavioursEnabled: true,
             enableSnippets: true,
-            enableBasicAutocompletion: [staticWordCompleter],
+            enableBasicAutocompletion: true,
             enableLiveAutocompletion: true
         })
         editor.setTheme('ace/theme/github')
