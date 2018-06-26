@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as ace from 'brace'
+// import { ace } from './mode/mode'
 import 'brace/ext/language_tools'
 // import { setCompleters } from 'brace/ext/language_tools'
 import 'brace/theme/github'
@@ -28,7 +29,7 @@ const staticWordCompleter = {
                               callback: (x: object | null, y: object[]) => void) {
         const token = _session.getTokenAt(_pos.row, _pos.column) as any
 
-        if (token.type === 'fieldName' || token.type === 'fieldNameSeparator') {
+        if (token.type === 'variable.instance.fieldName' || token.type === 'fieldNameSeparator') {
             const value = _session.getValue().substr(0, _pos.column)
             const startOfExpression = value.lastIndexOf('{{')
             const expressionStr = value.substr(startOfExpression + 2, _pos.column - startOfExpression + 2)
@@ -37,6 +38,7 @@ const staticWordCompleter = {
                 return {
                     caption: item.prefix + item.word,
                     value: item.prefix + item.word,
+                    meta: 'function(x,y) bla blal x + y -z -1 ',
                     completer: this
                 }
             }))
@@ -122,6 +124,7 @@ export default class App extends React.Component<Props, State> {
             showGutter: true,
             highlightActiveLine: true,
             wrapBehavioursEnabled: true,
+            behavioursEnabled: true,
             enableSnippets: true,
             enableBasicAutocompletion: true,
             enableLiveAutocompletion: true
